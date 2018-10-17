@@ -59,6 +59,7 @@ klc:
 
   # space bar
   spce: '39	SPACE'
+  rctl: 'E01D RCONTROL'
 
 osx:
   # digits
@@ -121,3 +122,5 @@ osx:
 
   # space bar
   spce: 49
+  rctl: 115
+  #todojordy: fuckit i put the home key

@@ -2,6 +2,7 @@
 import datetime
 import os
 import re
+import sys
 import yaml
 
 from .template import xkb_keymap, \
@@ -112,17 +113,22 @@ class KeyboardLayout:
         self.has_1dk = False
 
         # load the YAML data (and its ancessor, if any)
-        cfg = yaml.load(open(filepath))
-        if 'extends' in cfg:
-            path = os.path.join(os.path.dirname(filepath), cfg['extends'])
-            ext = yaml.load(open(path))
-            ext.update(cfg)
-            cfg = ext
+        try:
+            cfg = yaml.load(open(filepath))
+            if 'extends' in cfg:
+                path = os.path.join(os.path.dirname(filepath), cfg['extends'])
+                ext = yaml.load(open(path))
+                ext.update(cfg)
+                cfg = ext
+        except Exception as e:
+            print('File could not be parsed.')
+            print('Error: {}.'.format(e))
+            sys.exit(1)
 
         # metadata: self.meta
         for k in cfg:
             if k != 'base' and k != 'full' and k != 'altgr' \
-                    and k != 'spacebar':
+                    and k != 'spacebar' and k != 'rctrl' and k != 'rctrl2':
                 self.meta[k] = cfg[k]
         filename = os.path.splitext(os.path.basename(filepath))[0]
         self.meta['name'] = cfg['name'] if 'name' in cfg else filename
@@ -131,6 +137,7 @@ class KeyboardLayout:
         self.meta['fileName'] = self.meta['name8'].lower()
         self.meta['lastChange'] = datetime.date.today().isoformat()
 
+        #jordy: lafayette key must be set before parse lafayette keys is called
         # keyboard layers: self.layers & self.dead_keys
         rows = GEOMETRY[self.meta['geometry']]['rows']
         if 'full' in cfg:
@@ -142,6 +149,17 @@ class KeyboardLayout:
             base = text_to_lines(cfg['base'])
             self._parse_template(base, rows, 0)
             self._parse_template(base, rows, 2)
+
+            #LAFAYETTE_KEY = \u20e1
+            #rctrl
+            if 'rctrl' in cfg:
+                self.layers[0]['rctl'] = cfg['rctrl']
+                if 'rctrl2' in cfg:
+                    self.layers[2]['rctl'] = cfg['rctrl2']
+                else:
+                    self.layers[2]['rctl'] = ''
+            print('\nself.layers[0] =', self.layers[0])
+
             self._parse_lafayette_keys()
             if 'altgr' in cfg:
                 self.has_altgr = True
@@ -168,12 +186,14 @@ class KeyboardLayout:
 
         # 1dk behavior: alt_self (double-press), alt_space (1dk+space)
         if LAFAYETTE_KEY in self.dead_keys:
+            print("self.dead_keys=",self.dead_keys)
             self.has_1dk = True
             odk = self.dead_keys[LAFAYETTE_KEY]
             odk['alt_space'] = spc['1dk']
             odk['alt_self'] = "'"
             for key in self.layers[0]:
                 if self.layers[0][key] == LAFAYETTE_KEY:
+                    print("self.layers[2]=", self.layers[2])
                     odk['alt_self'] = self.layers[2][key]
                     break
 

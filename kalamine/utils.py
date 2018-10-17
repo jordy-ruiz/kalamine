@@ -69,5 +69,5 @@ LAYER_KEYS = [
     'tlde', 'bksl', 'lsgt',
 
     '- Space bar',
-    'spce'
+    'spce', 'rctl'
 ]
